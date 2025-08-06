@@ -1,0 +1,20 @@
+{
+    "apps": [
+        {
+            "name": "_upload_to_s3",
+            "script": "/var/www/html/artisan",
+            "args": [
+                "work",
+                "_upload_to_s3",
+                "--prefetch=1",
+                "--assure=false",
+                "--onerror=requeue"
+            ],
+            "exec_interpreter": "php",
+            "exec_mode": "fork_mode",
+            "instances": 1,
+            "log_file": "/dev/stdout",
+            "merge_logs": true
+        }
+    ]
+}

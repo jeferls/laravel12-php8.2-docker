@@ -1,0 +1,79 @@
+# version: '3.8' 
+
+services:
+  app:
+    build: .
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      - svc-saques-mysql
+    networks:
+      - greenn-network
+
+  svc-saques-nginx:
+    container_name: svc-saques-nginx
+    image: nginx:alpine
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8017:80"
+    depends_on:
+      - app
+    networks:
+      - greenn-network
+
+  svc-saques-mysql:
+    container_name: svc-saques-mysql
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: saques
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: secret
+    volumes:
+      - saques_back_data:/var/lib/mysql
+    ports:
+      - "3317:3306"
+    networks:
+      - greenn-network
+  svc-saques-rabbitmq:
+    container_name: svc-saques-rabbitmq
+    image: rabbitmq:3.10.6-management-alpine
+    ports:
+      - "15617:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - greenn-network
+    volumes:
+      - saquesback-rabbitmqdata:/var/lib/rabbitmq/mnesia/
+
+  pm2:
+    container_name: pm2
+    build: .
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      - app
+      - svc-saques-mysql
+      - svc-saques-rabbitmq
+    command: ["pm2-runtime", "storage/workers/dev.json"]
+    networks:
+      - greenn-network
+
+networks:
+  greenn-network:
+    driver: bridge
+    external: true
+
+volumes:
+  saques_back_data:
+    driver: local
+  saquesback-rabbitmqdata:
+    driver: local
+  vendor:
